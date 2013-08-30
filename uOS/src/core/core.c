@@ -48,6 +48,10 @@ OS_Ret uOS_Start(void)
     {
         return OS_E_NOT_OK;
     }
+    else if (OS_E_OK != uOS_SemInit())
+    {
+        return OS_E_NOT_OK;
+    }
 
     uOS_TaskSched();
 
