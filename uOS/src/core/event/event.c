@@ -18,6 +18,7 @@
 /*=============================[type define]==================================*/
 typedef struct
 {
+    uint8        waitTaskNum;
     TaskIdType   owner;
     TaskWaitList waitList;
 } EventControlBlock;
@@ -50,6 +51,7 @@ OS_Ret uOS_EventInit(void)
     for (eventId = 0; eventId < CFG_EVENT_MAX_NUM; eventId++)
     {
         uOS_TaskWaitListInit(&sEventCBTable[eventId].waitList);
+        sEventCBTable[eventId].waitTaskNum = 0;
     }
 
     return OS_E_OK;
@@ -68,6 +70,9 @@ OS_Ret uOS_EventInit(void)
 /******************************************************************************/
 OS_Ret uOS_EventPend(EventIdType eventId, TickType timeout)
 {
+    RegsType    regPsr;
+    OS_Ret      ret = OS_E_NOT_OK;
+
 #if (TRUE == CFG_DET_ERROR_DECTECT)      
     if (eventId >= EVENT_NUM_CFG)
     {
@@ -75,9 +80,20 @@ OS_Ret uOS_EventPend(EventIdType eventId, TickType timeout)
     }
 #endif
 
-    uOS_TaskWait(&sEventCBTable[eventId].waitList, timeout);
+    Hal_EnterCritical();
+    if (sEventCBTable[eventId].waitTaskNum < 255U)
+    {
+        sEventCBTable[eventId].waitTaskNum++;
+        uOS_TaskWait(&sEventCBTable[eventId].waitList, timeout);
+        ret = OS_E_OK;
+    }
+    else
+    {
+        ret = OS_E_NOT_OK;
+    }
+    Hal_ExitCritical();
 
-    return OS_E_NOT_OK;
+    return ret;
 }
 
 /******************************************************************************/
@@ -100,9 +116,13 @@ OS_Ret uOS_EventPost(EventIdType eventId)
     }
 #endif
 
-    uOS_TaskWake(&sEventCBTable[eventId].waitList);
+    if (0 != sEventCBTable[eventId].waitTaskNum)
+    {
+        sEventCBTable[eventId].waitTaskNum--;
+        uOS_TaskWake(&sEventCBTable[eventId].waitList);
+    }
 
-    return OS_E_NOT_OK;
+    return OS_E_OK;
 }
 
 #endif /* TRUE == CFG_EVENT_SUPPORT */
