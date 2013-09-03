@@ -33,6 +33,10 @@ typedef struct
 {
     TaskIdType    highestPriTid;
 
+    uint8         bitmap[(CFG_PRI_MAX_NUM-1)/8+1];
+
+    uint8         bitmapRow;
+
     struct dlist  dList[CFG_PRI_MAX_NUM];
 }TaskList;
 

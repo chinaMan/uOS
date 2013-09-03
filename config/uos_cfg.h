@@ -52,7 +52,7 @@
 #define  CFG_UOS_TASK_CHANGE_PRI_API    TRUE
 
 #define  CFG_TASK_MAX_NUM        3       /* max number of task */
-#define  CFG_PRI_MAX_NUM         3       /* max number of task */
+#define  CFG_PRI_MAX_NUM         8       /* max number of task */
 
 typedef uint8  TaskIdType;               /* depend on CFG_TASK_MAX_NUM */
 typedef uint8  TaskPriType;

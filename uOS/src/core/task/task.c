@@ -32,7 +32,6 @@ typedef struct
     Hal_TaskContext   context;
 }TaskControlBlock;
 
-
 /*=============================[extern data]==================================*/
 extern CONST TaskMgrCfgType gTaskMgrCfg;
 
@@ -49,8 +48,22 @@ extern CONST TaskMgrCfgType gTaskMgrCfg;
 #endif
 
 #define TASK_ID_IDLE          (TASK_NUM_CFG-1)
-#define TASK_IDLE_PRI         (TASK_NUM_CFG-1)
+#define TASK_IDLE_PRI         (CFG_PRI_MAX_NUM-1)
 #define TASK_IDLE_STK_SIZE    (127)
+
+#define ROW(list)   sBitmapIndex[list->bitmapRow]
+#define COL(list)   sBitmapIndex[list->bitmap[ROW(list)]]
+#define GetHighestPriority(list)   (ROW(list) << 3 | COL(list))
+#define BitmapClear(list, pri)        \
+    do{ \
+        list->bitmap[(pri)>>3] &= ~(1 << ((pri)&0xFFU)); \
+        list->bitmapRow &= ~(1<<((pri)>>3)); \
+    }while(0)
+#define BitmapSet(list, pri)   \
+    do{      \
+        list->bitmap[(pri)>>3] |= (1 << ((pri)&0xFFU)); \
+        list->bitmapRow |= (1<<((pri)>>3)); \
+    }while(0)
 
 /*=============================[internal data]================================*/
 STATIC TaskControlBlock sTcbTable[CFG_TASK_MAX_NUM];
@@ -66,6 +79,26 @@ STATIC struct dlist     sFreeTaskNodeList;
 
 /* Schedule level */
 uint8                   gTaskSchedLockLevel = 0;
+
+STATIC CONST uint8 sBitmapIndex[256] = 
+{
+    0, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,       /* 0x00 to 0x0F */
+    4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,       /* 0x10 to 0x1F */
+    5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,       /* 0x20 to 0x2F */
+    4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,       /* 0x30 to 0x3F */
+    6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,       /* 0x40 to 0x4F */
+    4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,       /* 0x50 to 0x5F */
+    5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,       /* 0x60 to 0x6F */
+    4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,       /* 0x70 to 0x7F */
+    7, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,       /* 0x80 to 0x8F */
+    4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,       /* 0x90 to 0x9F */
+    5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,       /* 0xA0 to 0xAF */
+    4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,       /* 0xB0 to 0xBF */
+    6, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,       /* 0xC0 to 0xCF */
+    4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,       /* 0xD0 to 0xDF */
+    5, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0,       /* 0xE0 to 0xEF */
+    4, 0, 1, 0, 2, 0, 1, 0, 3, 0, 1, 0, 2, 0, 1, 0        /* 0xF0 to 0xFF */
+};
 
 /*=============================[internal function]============================*/
 STATIC INLINE TaskNode *FreeNodeGet(void);
@@ -408,7 +441,6 @@ OS_Ret uOS_TaskChangePri(TaskIdType tid, TaskPriType pri)
     return OS_E_OK;
 }
 #endif /* TRUE == CFG_UOS_TASK_CHANGE_PRI_API */
-TaskWaitList   owner;
 
 /******************************************************************************/
 /*
@@ -548,11 +580,11 @@ STATIC void TaskListAdd(TaskList *list, TaskNode *pNode)
     /* insert list */
     dlist_add(&list->dList[pri], &pNode->dNode, &list->dList[pri].head);
 
+    /* set bitmap */
+    BitmapSet(list, pri);
+
     /* re-calc highest priority*/
-    if (sTcbTable[list->highestPriTid].pri > pri)
-    {
-        list->highestPriTid = pNode->tid;
-    }
+    TaskListRecalcPri(list);
 }
 
 /******************************************************************************/
@@ -569,6 +601,13 @@ STATIC void TaskListAdd(TaskList *list, TaskNode *pNode)
 STATIC void TaskListDel(TaskList *list, TaskNode *pNode)
 {
     dlist_del(&list->dList[sTcbTable[pNode->tid].pri], &pNode->dNode);
+
+    /* set bitmap */
+    if (1 == dlist_empty(&list->dList[sTcbTable[pNode->tid].pri]))
+    {
+        BitmapClear(list, sTcbTable[pNode->tid].pri);
+    }
+
     TaskListRecalcPri(list);
 }
 
@@ -637,13 +676,11 @@ STATIC void TaskListRecalcPri(TaskList *list)
     TaskNode *pReadyNode;
 
     /* find highest priority */
-    while ((pri < CFG_PRI_MAX_NUM) && (1 == dlist_empty(&list->dList[pri])))
-    {
-        pri++;    
-    }
+    pri = GetHighestPriority(list);
 
     pReadyNode = contained_of(dlist_first(&list->dList[pri]), 
         TaskNode, dNode);
+
     list->highestPriTid = pReadyNode->tid;
 }
 
