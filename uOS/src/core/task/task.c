@@ -33,7 +33,7 @@ typedef struct
 }TaskControlBlock;
 
 /*=============================[extern data]==================================*/
-extern CONST TaskMgrCfgType gTaskMgrCfg;
+EXTERN CONST TaskMgrCfgType gTaskMgrCfg;
 
 /*=============================[marco define]=================================*/
 #if (CFG_VARIANT_TYPE == CFG_VARIANT_PC)
@@ -47,37 +47,34 @@ extern CONST TaskMgrCfgType gTaskMgrCfg;
 #define TASK_NUM_CFG    (CFG_TASK_MAX_NUM)
 #endif
 
-#define TASK_ID_IDLE          (TASK_NUM_CFG-1)
-#define TASK_IDLE_PRI         (CFG_PRI_MAX_NUM-1)
-#define TASK_IDLE_STK_SIZE    (127)
+/* idle task(last taskID, lowest priority) */
+#define TASK_ID_IDLE    (TASK_NUM_CFG-1)
+#define TASK_IDLE_PRI   (CFG_PRI_MAX_NUM-1)
 
-#define ROW(list)   sBitmapIndex[list->bitmapRow]
-#define COL(list)   sBitmapIndex[list->bitmap[ROW(list)]]
+/* bitmap schedule algorithm */
+#define ROW(list)                  sBitmapIndex[list->bitmapRow]
+#define COL(list)                  sBitmapIndex[list->bitmap[ROW(list)]]
 #define GetHighestPriority(list)   (ROW(list) << 3 | COL(list))
-#define BitmapClear(list, pri)        \
-    do{ \
+
+#define BitmapClear(list, pri)                           \
+    do{                                                  \
         list->bitmap[(pri)>>3] &= ~(1 << ((pri)&0xFFU)); \
-        list->bitmapRow &= ~(1<<((pri)>>3)); \
+        list->bitmapRow &= ~(1<<((pri)>>3));             \
     }while(0)
-#define BitmapSet(list, pri)   \
-    do{      \
-        list->bitmap[(pri)>>3] |= (1 << ((pri)&0xFFU)); \
-        list->bitmapRow |= (1<<((pri)>>3)); \
+#define BitmapSet(list, pri)                             \
+    do{                                                  \
+        list->bitmap[(pri)>>3] |= (1 << ((pri)&0xFFU));  \
+        list->bitmapRow |= (1<<((pri)>>3));              \
     }while(0)
 
 /*=============================[internal data]================================*/
 STATIC TaskControlBlock sTcbTable[CFG_TASK_MAX_NUM];
 STATIC TaskIdType       sRunningTaskId;
-
-/*
- * Ready List
- */ 
-STATIC TaskList sReadyList;
-
-STATIC TaskNode sTaskNodeTable[CFG_TASK_MAX_NUM];
+STATIC TaskList         sReadyList;
+/* free task node */
+STATIC TaskNode         sTaskNodeTable[CFG_TASK_MAX_NUM];
 STATIC struct dlist     sFreeTaskNodeList;
-
-/* Schedule level */
+/* Schedule lock level */
 uint8                   gTaskSchedLockLevel = 0;
 
 STATIC CONST uint8 sBitmapIndex[256] = 
@@ -102,13 +99,13 @@ STATIC CONST uint8 sBitmapIndex[256] =
 
 /*=============================[internal function]============================*/
 STATIC INLINE TaskNode *FreeNodeGet(void);
-STATIC INLINE FreeNodeRecover(TaskNode *pNode);
+STATIC INLINE void FreeNodeRecover(TaskNode *pNode);
 STATIC void TaskListInit(TaskList *list);
 STATIC void TaskListAdd(TaskList *list, TaskNode *pNode);
 STATIC void TaskListDel(TaskList *list, TaskNode *pNode);
+STATIC void TaskListRecalcPri(TaskList *list);
 STATIC TaskNode *TaskListFindByTid(TaskList *list, TaskIdType tid);
 STATIC TaskNode *TaskListFindByPri(TaskList *list, TaskPriType pri);
-STATIC void TaskListRecalcPri(TaskList *list);
 
 /*===========================[function define]================================*/
 /******************************************************************************/
@@ -193,20 +190,20 @@ OS_Ret uOS_TaskActive(TaskIdType tid)
     {
         return OS_E_NOT_OK;
     }
-    else if (TASK_STATE_SUSPEND != sTcbTable[tid].state)
-    {
-        return OS_E_NOT_OK;
-    }
 #endif /* TRUE == CFG_DET_ERROR_DECTECT*/
 
     Hal_EnterCritical();
+    if (TASK_STATE_SUSPEND != sTcbTable[tid].state)
+    {
+        Hal_ExitCritical();
+        return OS_E_NOT_OK;
+    }
 
     /* get free ready node */
     pReadyNode = FreeNodeGet();
     pReadyNode->tid = tid;
-
-    sTcbTable[tid].state = TASK_STATE_READY;
     TaskListAdd(&sReadyList, pReadyNode);
+    sTcbTable[tid].state = TASK_STATE_READY;
     Hal_ExitCritical();
 
     uOS_TaskSched();
@@ -234,19 +231,18 @@ OS_Ret uOS_TaskTerminate(TaskIdType tid)
     {
         return OS_E_NOT_OK;
     }
-    else if (TASK_STATE_READY != sTcbTable[tid].state)
-    {
-        return OS_E_NOT_OK;
-    }
 #endif /* TRUE == CFG_DET_ERROR_DECTECT */
 
     Hal_EnterCritical();
+    if (TASK_STATE_READY != sTcbTable[tid].state)
+    {
+        Hal_ExitCritical();
+        return OS_E_NOT_OK;
+    }
 
     pTaskNode = TaskListFindByTid(&sReadyList, tid);
     TaskListDel(&sReadyList, pTaskNode);
-
     FreeNodeRecover(pTaskNode);
-
     sTcbTable[sRunningTaskId].state = TASK_STATE_SUSPEND;
     Hal_ExitCritical();
 
@@ -324,9 +320,17 @@ OS_Ret uOS_TaskWait(TaskWaitList *list, TickType timeout)
     TaskNode *pTaskNode;
 
 #if (TRUE == CFG_DET_ERROR_DECTECT)
-    if (sRunningTaskId >= TASK_NUM_CFG)
+    if (NULL == list)
     {
         return OS_E_NOT_OK;
+    }
+    else if (sRunningTaskId >= TASK_NUM_CFG)
+    {
+        return OS_E_NOT_OK;
+    }
+    else
+    {
+        /* do nothing */
     }
 #endif /* TRUE == CFG_DET_ERROR_DECTECT*/
 
@@ -368,7 +372,6 @@ OS_Ret uOS_TaskWake(TaskWaitList *list)
     pTaskNode = TaskListFindByTid(list, list->highestPriTid);
     TaskListDel(list, pTaskNode);
     TaskListAdd(&sReadyList, pTaskNode);
-
     sTcbTable[pTaskNode->tid].state = TASK_STATE_READY;
     Hal_ExitCritical();
 
@@ -420,14 +423,20 @@ OS_Ret uOS_TaskChangePri(TaskIdType tid, TaskPriType pri)
     {
         return OS_E_NOT_OK;
     }
-    else if (TASK_STATE_READY != sTcbTable[tid].state)
+    else
     {
-        return OS_E_NOT_OK;
+        /* do nothing */
     }
 #endif /* TRUE == CFG_DET_ERROR_DECTECT*/
 
     Hal_EnterCritical();
-    if (sTcbTable[tid].pri != pri)
+
+    if (TASK_STATE_READY != sTcbTable[tid].state)
+    {
+        Hal_ExitCritical();
+        return OS_E_NOT_OK;
+    }
+    else if (sTcbTable[tid].pri != pri)
     {
         /* change position in ready list */
         pTaskNode = TaskListFindByTid(&sReadyList, tid);
@@ -436,6 +445,11 @@ OS_Ret uOS_TaskChangePri(TaskIdType tid, TaskPriType pri)
         sTcbTable[tid].basePri = pri;
         TaskListAdd(&sReadyList, pTaskNode);
     }
+    else
+    {
+        /* do nothing */
+    }
+
     Hal_ExitCritical();
 
     return OS_E_OK;
@@ -468,20 +482,26 @@ OS_Ret uOS_TaskPriInherit(TaskIdType tid, TaskPriType pri)
     {
         return OS_E_NOT_OK;
     }
-    else if (TASK_STATE_READY == sTcbTable[tid].state)
-    {
-        return OS_E_NOT_OK;
-    }
 #endif /* TRUE == CFG_DET_ERROR_DECTECT*/
 
     Hal_EnterCritical();
-    if (sTcbTable[tid].pri != pri)
+
+    if (TASK_STATE_READY == sTcbTable[tid].state)
+    {
+        Hal_ExitCritical();
+        return OS_E_NOT_OK;
+    }
+    else if (sTcbTable[tid].pri != pri)
     {
         /* change position in ready list */
         pTaskNode = TaskListFindByTid(&sReadyList, tid);
         TaskListDel(&sReadyList, pTaskNode);
         sTcbTable[tid].pri = pri;
         TaskListAdd(&sReadyList, pTaskNode);
+    }
+    else
+    {
+        /* do nothing */
     }
     Hal_ExitCritical();
 
@@ -515,20 +535,26 @@ OS_Ret uOS_TaskPriRecover(TaskIdType tid)
     {
         return OS_E_NOT_OK;
     }
-    else if (TASK_STATE_READY == sTcbTable[tid].state)
-    {
-        return OS_E_NOT_OK;
-    }
 #endif /* TRUE == CFG_DET_ERROR_DECTECT*/
 
     Hal_EnterCritical();
-    if (sTcbTable[tid].pri != sTcbTable[tid].basePri)
+
+    if (TASK_STATE_READY == sTcbTable[tid].state)
+    {
+        Hal_ExitCritical();
+        return OS_E_NOT_OK;
+    }
+    else if (sTcbTable[tid].pri != sTcbTable[tid].basePri)
     {
         /* change position in ready list */
         pTaskNode = TaskListFindByTid(&sReadyList, tid);
         TaskListDel(&sReadyList, pTaskNode);
         sTcbTable[tid].pri = sTcbTable[tid].basePri;
         TaskListAdd(&sReadyList, pTaskNode);
+    }
+    else
+    {
+        /* do nothing */
     }
     Hal_ExitCritical();
 
@@ -716,7 +742,7 @@ STATIC INLINE TaskNode *FreeNodeGet(void)
  * @return:     <ready node>
  */
 /******************************************************************************/
-STATIC INLINE FreeNodeRecover(TaskNode *pNode)
+STATIC INLINE void FreeNodeRecover(TaskNode *pNode)
 {
     dlist_append(&sFreeTaskNodeList, &pNode->dNode);
 }
