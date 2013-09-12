@@ -1,6 +1,6 @@
 /*============================================================================*/
 /*
- * @brief:   flag manager module header file
+ * @brief:   condition manager module source file
  *
  * @author:  bo.zeng
  *
@@ -8,8 +8,8 @@
  *
  */
 /*============================================================================*/
-#ifndef FLAG_H
-#define FLAG_H
+#ifndef CONDITION_H
+#define CONDITION_H
 #ifdef CPLUSPLUS
 #define extern "C" {
 #endif 
@@ -21,14 +21,22 @@
 /*==============================[marco]=======================================*/
 
 /*==============================[typedef]=====================================*/
+typedef enum
+{
+    EVENT_TYPE_SEM,
+    EVENT_TYPE_MUTEX,
+    EVENT_TYPE_MBOX,
+    EVENT_TYPE_QEUEU,
+    EVENT_TYPE_FLAG
+} EventType;
 
 /*============================[extern data]===================================*/
 
 /*===========================[extern function]================================*/
 /******************************************************************************/
 /*
- * @brief:      <initalize flag module> 
- * @detail:     <initalize flag module> 
+ * @brief:      <initalize condition variable module> 
+ * @detail:     <initalize condition variable module> 
  * @sync/async: <sync>
  * @reetrancy:  <reetrancy>
  * @param[in]:  <None> 
@@ -36,47 +44,35 @@
  * @return:     <os return>
  */
 /******************************************************************************/
-EXTERN OS_Ret uOS_FlagInit(void);
+EXTERN OS_Ret uOS_CVInit(void);
 
 /******************************************************************************/
 /*
- * @brief:      <Flag Pend> 
- * @detail:     <Flag Pend> 
+ * @brief:      <condition variable Pend> 
+ * @detail:     <condition variable Pend> 
  * @sync/async: <sync>
  * @reetrancy:  <reetrancy>
- * @param[in]:  <flagId: flag id> 
- * @param[in]:  <flag:  flag> 
- * @param[in]:  <waitType: FLAG_WAIT_TYPE_ANY, FLAG_WAIT_TYPE_OR> 
- * @param[in]:  <timeout: timeout wake and return> 
+ * @param[in]:  <None> 
  * @param[out]: <None> 
  * @return:     <os return>
  */
 /******************************************************************************/
-EXTERN OS_Ret uOS_FlagPend(
-        FlagIdType flagId, 
-        FlagType flag, 
-        FlagWaitType waitType,
-        TickType timeout);
+EXTERN OS_Ret uOS_CVPend(CVIdType cvId, TickType timeout);
 
 /******************************************************************************/
 /*
- * @brief:      <Event Post> 
- * @detail:     <Event Post> 
+ * @brief:      <condition variable Post> 
+ * @detail:     <condition variable Post> 
  * @sync/async: <sync>
  * @reetrancy:  <reetrancy>
- * @param[in]:  <flagId: flag id> 
- * @param[in]:  <flag:  flag> 
- * @param[in]:  <flagAct: FLAG_ACT_TYPE_SET, FLAG_ACT_TYPE_CLEAR> 
+ * @param[in]:  <None> 
  * @param[out]: <None> 
  * @return:     <os return>
  */
 /******************************************************************************/
-EXTERN OS_Ret uOS_FlagPost(
-        FlagIdType flagId, 
-        FlagType flag, 
-        FlagActType flagAct);
+EXTERN OS_Ret uOS_CVPost(CVIdType cvId);
 
 #ifdef CPLUSPLUS
 }
 #endif /* CPLUSPLUS */
-#endif /* FLAG_H */
+#endif /* CONDITION_H */

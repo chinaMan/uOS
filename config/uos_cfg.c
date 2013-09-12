@@ -17,13 +17,13 @@ EXTERN void TaskKeyPad(void);
 EXTERN void TaskMmi(void);
 
 /*=============================[task configure]===============================*/
-STATIC byte TaskKeyPadStk[128];
-STATIC byte TaskMmiStk[128];
+STATIC byte TaskKeyPadStk[1024];
+STATIC byte TaskMmiStk[1024];
 STATIC CONST TaskTableCfgType sTaskTableCfgData[CFG_TASK_MAX_NUM-1] = 
 {
     /* fpEntry     autoStart  stkSize   stkBottom */
-    {TaskKeyPad,   FALSE,      128,     (CONST uint32)TaskKeyPadStk},        
-    {TaskMmi,      TRUE,       128,     (CONST uint32)TaskMmiStk},        
+    {TaskKeyPad,   TRUE,      1024,     (CONST uint32)TaskKeyPadStk},        
+    {TaskMmi,      TRUE,      1024,     (CONST uint32)TaskMmiStk},        
 };
 
 STATIC CONST TaskPriType sTaskPriCfgData[CFG_TASK_MAX_NUM-1] = 
@@ -74,4 +74,32 @@ STATIC CONST SemCfgType sSemTableCfgData[CFG_MUTEX_MAX_NUM] =
 };
 
 CONST SemMgrCfgType gSemMgrCfg = {sSemTableCfgData};
+#endif
+
+#if (TRUE == CFG_FLAG_SUPPORT)
+STATIC CONST FlagCfgType sFlagTableCfgData[CFG_FLAG_MAX_NUM] =
+{
+    {0},
+};
+
+CONST FlagMgrCfgType gFlagMgrCfg = {sFlagTableCfgData};
+#endif
+
+#if (TRUE == CFG_CV_SUPPORT)
+STATIC CONST CVCfgType sCVTableCfgData[CFG_FLAG_MAX_NUM] =
+{
+    {3},
+};
+
+CONST CVMgrCfgType gCVMgrCfg = {sCVTableCfgData};
+#endif
+
+#if (TRUE == CFG_MSGQ_SUPPORT)
+void *gMsgQ[3];
+STATIC CONST MsgQCfgType sMsgQTableCfgData[CFG_FLAG_MAX_NUM] =
+{
+    {3, (void **)gMsgQ, 4},
+};
+
+CONST MsgQMgrCfgType gMsgQMgrCfg = {sMsgQTableCfgData};
 #endif

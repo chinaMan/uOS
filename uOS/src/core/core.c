@@ -52,6 +52,18 @@ OS_Ret uOS_Start(void)
     {
         return OS_E_NOT_OK;
     }
+    else if (OS_E_OK != uOS_FlagInit())
+    {
+        return OS_E_NOT_OK;
+    }
+    else if (OS_E_OK != uOS_CVInit())
+    {
+        return OS_E_NOT_OK;
+    }
+    else if (OS_E_OK != uOS_MsgQInit())
+    {
+        return OS_E_NOT_OK;
+    }
 
     uOS_TaskSched();
 

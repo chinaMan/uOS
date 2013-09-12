@@ -111,7 +111,6 @@ void Hal_IsrDataAbt(void)
 void Hal_IsrIrq(void)
 {
     Hal_IntContextSave();
-    //Hal_IrqHandler();
     Hal_IntContextResume();
 }
 

@@ -37,9 +37,11 @@
 #define  CFG_COUNTER_SUPPORT          TRUE
 #define  CFG_TIMER_SUPPORT            TRUE
 #define  CFG_EVENT_SUPPORT            TRUE
+#define  CFG_FLAG_SUPPORT             TRUE
+#define  CFG_CV_SUPPORT               TRUE
 #define  CFG_SEM_SUPPORT              TRUE
 #define  CFG_MUTEX_SUPPORT            TRUE
-#define  CFG_MSGQUEUE_SUPPORT         FALSE
+#define  CFG_MSGQ_SUPPORT             TRUE
 
 /*===============================[Task Cofigure]==============================*/
 /*
@@ -84,7 +86,7 @@ typedef uint8  TimerIdType;
 /*
  * Event General 
  */
-#define  CFG_EVENT_MAX_NUM      2
+#define  CFG_EVENT_MAX_NUM      (CFG_MUTEX_MAX_NUM+CFG_CV_MAX_NUM+CFG_SEM_MAX_NUM+CFG_MSGQ_MAX_NUM)
 typedef uint8  EventIdType;
 
 /*
@@ -96,8 +98,27 @@ typedef uint8  MutexIdType;
 /*
  * Sempaphore General 
  */
-#define  CFG_SEM_MAX_NUM      1
+#define  CFG_SEM_MAX_NUM        1
 typedef uint8  SemIdType;
+
+/*
+ * Flag General 
+ */
+#define  CFG_FLAG_MAX_NUM                1
+#define  CFG_FLAG_WAITTASK_MAX_NUM       32
+typedef uint8  FlagIdType;
+
+/*
+ * condition variable General 
+ */
+#define  CFG_CV_MAX_NUM          1
+typedef uint8  CVIdType;
+
+/*
+ * message queue General
+ */
+#define  CFG_MSGQ_MAX_NUM       1
+typedef uint8  MsgQIdType;
 
 /*===========================[Interrupt Cofigure]============================*/
 

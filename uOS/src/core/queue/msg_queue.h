@@ -1,15 +1,15 @@
 /*============================================================================*/
 /*
- * @brief:   flag manager module header file
+ * @brief:   message queue manager module header file
  *
  * @author:  bo.zeng
  *
- * @data:    2013.8.11
+ * @data:    2013.9.12
  *
  */
 /*============================================================================*/
-#ifndef FLAG_H
-#define FLAG_H
+#ifndef MSG_QUEUE_H
+#define MSG_QUEUE_H
 #ifdef CPLUSPLUS
 #define extern "C" {
 #endif 
@@ -27,8 +27,8 @@
 /*===========================[extern function]================================*/
 /******************************************************************************/
 /*
- * @brief:      <initalize flag module> 
- * @detail:     <initalize flag module> 
+ * @brief:      <initalize message queue module> 
+ * @detail:     <initalize message queue module> 
  * @sync/async: <sync>
  * @reetrancy:  <reetrancy>
  * @param[in]:  <None> 
@@ -36,47 +36,48 @@
  * @return:     <os return>
  */
 /******************************************************************************/
-EXTERN OS_Ret uOS_FlagInit(void);
+EXTERN OS_Ret uOS_MsgQInit(void);
 
 /******************************************************************************/
 /*
- * @brief:      <Flag Pend> 
- * @detail:     <Flag Pend> 
+ * @brief:      <message queue Pend> 
+ * @detail:     <message queue Pend> 
  * @sync/async: <sync>
  * @reetrancy:  <reetrancy>
- * @param[in]:  <flagId: flag id> 
- * @param[in]:  <flag:  flag> 
- * @param[in]:  <waitType: FLAG_WAIT_TYPE_ANY, FLAG_WAIT_TYPE_OR> 
- * @param[in]:  <timeout: timeout wake and return> 
+ * @param[in]:  <None> 
  * @param[out]: <None> 
  * @return:     <os return>
  */
 /******************************************************************************/
-EXTERN OS_Ret uOS_FlagPend(
-        FlagIdType flagId, 
-        FlagType flag, 
-        FlagWaitType waitType,
-        TickType timeout);
+EXTERN void *uOS_MsgQPend(MsgQIdType msgQId, TickType timeout);
 
 /******************************************************************************/
 /*
- * @brief:      <Event Post> 
- * @detail:     <Event Post> 
+ * @brief:      <message queue Post> 
+ * @detail:     <message queue Post> 
  * @sync/async: <sync>
  * @reetrancy:  <reetrancy>
- * @param[in]:  <flagId: flag id> 
- * @param[in]:  <flag:  flag> 
- * @param[in]:  <flagAct: FLAG_ACT_TYPE_SET, FLAG_ACT_TYPE_CLEAR> 
+ * @param[in]:  <None> 
  * @param[out]: <None> 
  * @return:     <os return>
  */
 /******************************************************************************/
-EXTERN OS_Ret uOS_FlagPost(
-        FlagIdType flagId, 
-        FlagType flag, 
-        FlagActType flagAct);
+EXTERN OS_Ret uOS_MsgQPost(MsgQIdType msgQId, void *msg);
+
+/******************************************************************************/
+/*
+ * @brief:      <message queue Post front> 
+ * @detail:     <message queue Post front> 
+ * @sync/async: <sync>
+ * @reetrancy:  <reetrancy>
+ * @param[in]:  <None> 
+ * @param[out]: <None> 
+ * @return:     <os return>
+ */
+/******************************************************************************/
+EXTERN OS_Ret uOS_MsgQPostFront(MsgQIdType msgQId, void *msg);
 
 #ifdef CPLUSPLUS
 }
 #endif /* CPLUSPLUS */
-#endif /* FLAG_H */
+#endif /* MSG_QUEUE_H */

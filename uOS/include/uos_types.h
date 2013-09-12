@@ -115,6 +115,62 @@ typedef struct
     CONST SemCfgType  *pSemTableCfg;
 } SemMgrCfgType;
 
+/*
+ * Flag
+ */
+typedef uint16  FlagType;
+#define FLAG_CONSUME  0x80
+typedef enum
+{
+    FLAG_WAIT_TYPE_ANY,
+    FLAG_WAIT_TYPE_OR,
+    FLAG_WAIT_TYPE_MAX
+} FlagWaitType;
+typedef enum
+{
+    FLAG_ACT_TYPE_SET,
+    FLAG_ACT_TYPE_CLEAR,
+    FLAG_ACT_TYPE_MAX
+} FlagActType;
+
+typedef struct
+{
+    FlagType     initFlag;
+} FlagCfgType;
+
+typedef struct
+{
+    CONST FlagCfgType  *pFlagTableCfg;
+} FlagMgrCfgType;
+
+/*
+ * Condition variable 
+ */
+typedef struct
+{
+    EventIdType  eventId;
+} CVCfgType;
+
+typedef struct
+{
+    CONST CVCfgType  *pCVTableCfg;
+} CVMgrCfgType;
+
+/*
+ * Message Queue
+ */
+typedef struct
+{
+    uint16       size;
+    void         **msgStorage;
+    EventIdType  eventId;
+} MsgQCfgType;
+
+typedef struct
+{
+    CONST MsgQCfgType  *pMsgQTableCfg;
+} MsgQMgrCfgType;
+
 #ifdef CPLUSPLUS
 }
 #endif /* CPLUSPLUS */

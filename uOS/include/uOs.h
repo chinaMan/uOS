@@ -21,6 +21,9 @@
 #include "timer.h"
 #include "mutex.h"
 #include "sem.h"
+#include "flag.h"
+#include "condition.h"
+#include "msg_queue.h"
 
 /*==============================[marco]=======================================*/
 
