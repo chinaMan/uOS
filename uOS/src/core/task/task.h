@@ -1,6 +1,6 @@
 /*============================================================================*/
 /*
- * @brief:   task manager module source file
+ * @brief:   task manager module header file
  *
  * @author:  bo.zeng
  *
@@ -18,20 +18,34 @@
 #include "uos_types.h"
 #include "uos_cfg.h"
 #include "dlist.h"
+#include "uhal.h"
 
 /*==============================[marco]=======================================*/
 
 /*==============================[typedef]=====================================*/
-typedef struct 
+typedef enum 
+{
+    TASK_STATE_SUSPEND = 0,
+    TASK_STATE_READY,
+    TASK_STATE_WAITTING,
+    TASK_STATE_RUNNING
+}TaskStateType;
+
+typedef struct
 {
     struct dlist_node dNode;    
-
     TaskIdType        tid;
-}TaskNode;
+    TaskStateType     state;
+    TaskPriType       pri;
+    TaskPriType       basePri;
+    Hal_TaskContext   context;
+}TaskControlBlock;
 
 typedef struct
 {
     TaskIdType    highestPriTid;
+
+    uint16        taskNum;
 
     uint8         bitmap[(CFG_PRI_MAX_NUM-1)/8+1];
 
@@ -241,6 +255,32 @@ EXTERN OS_Ret uOS_TaskPriInherit(TaskIdType tid, TaskPriType pri);
  */
 /******************************************************************************/
 EXTERN OS_Ret uOS_TaskPriRecover(TaskIdType tid);
+
+/******************************************************************************/
+/*
+ * @brief:      <delete task from ready list> 
+ * @detail:     <delete task from ready list> 
+ * @sync/async: <sync>
+ * @reetrancy:  <reetrancy>
+ * @param[in]:  <tid: task id> 
+ * @param[in]:  <None> 
+ * @return:     <OS_Ret: os return>
+ */
+/******************************************************************************/
+EXTERN TaskControlBlock *uOS_TaskReadyListDel(TaskIdType tid);
+
+/******************************************************************************/
+/*
+ * @brief:      <delete task from ready list> 
+ * @detail:     <delete task from ready list> 
+ * @sync/async: <sync>
+ * @reetrancy:  <reetrancy>
+ * @param[in]:  <tid: task id> 
+ * @param[in]:  <None> 
+ * @return:     <OS_Ret: os return>
+ */
+/******************************************************************************/
+EXTERN OS_Ret uOS_TaskReadyListAdd(TaskControlBlock *pTCB);
 
 #ifdef CPLUSPLUS
 }
